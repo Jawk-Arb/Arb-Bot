@@ -1,0 +1,6 @@
+polybot/
+polymarket_data.csv
+.env
+logs/
+*.csv
+__pycache__/
