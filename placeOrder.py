@@ -64,6 +64,7 @@ def execute_kalshi_order(kalshi_params):
     logger = logging.getLogger('kalshi')
     logger.info(f"Kalshi Params: {kalshi_params}")
     order_type = "market"
+    
 
     try:
         url = "https://api.elections.kalshi.com/trade-api/v2/portfolio/orders"
@@ -78,12 +79,13 @@ def execute_kalshi_order(kalshi_params):
         headers = {
             "accept": "application/json",
             "content-type": "application/json",
-            "Authorization": f"Bearer {kalshi_params['auth_token']}"
+            "Authorization": f"Bearer {kalshi_params['auth_token']}",
+            "User-Agent": "curl/8.4.0"
         }
         logger.info(f"Order Payload: {json.dumps(payload, indent=2)}")
         logger.info(f"Order Headers: {headers}")
         
-        response = requests.post(url, json=payload, headers=headers).json()
+        response = requests.post(url, json=payload, headers=headers, proxies={'http': None, 'https': None}, verify=True).json()
         logger.info(f"Order Response: {json.dumps(response, indent=2)}")
         return response
     except Exception as e:
@@ -103,17 +105,27 @@ def execute_order(kalshi_params, polymarket_params):
     return kalshi_order, polymarket_order
 
 def kalshi_auth() -> str:
-    """Get Kalshi authentication token"""
-    email = os.getenv("KALSHI_EMAIL")
-    password = os.getenv("KALSHI_PASSWORD")
     url = "https://trading-api.kalshi.com/trade-api/v2/login"
-    payload = {"email": email, "password": password}
     headers = {
         "accept": "application/json",
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "User-Agent": "curl/8.4.0"
     }
-    response = requests.post(url, json=payload, headers=headers).json()
-    return response["token"]
+    payload = {
+        "email": os.getenv("KALSHI_EMAIL"),
+        "password": os.getenv("KALSHI_PASSWORD")
+    }
+    
+    
+    response = requests.post(
+        url, 
+        json=payload,
+        headers=headers,
+        proxies={'http': None, 'https': None},  # Explicitly bypass proxy
+        verify=True
+    )
+    
+    return response.json()["token"]
 
 def get_polymarket_client():
     host = os.getenv("POLYMARKET_HOST")
@@ -131,5 +143,5 @@ def get_polymarket_client():
 
 
 if __name__ == "__main__":
-    get_polymarket_client()
+    print(kalshi_auth())
     

@@ -2,6 +2,7 @@ import pandas
 import requests
 import ast
 import pandas as pd
+import logging
 
 from py_clob_client.client import ClobClient
 from py_clob_client.clob_types import BookParams
@@ -9,10 +10,11 @@ from py_clob_client.clob_types import OrderArgs, OrderType
 from py_clob_client.order_builder.constants import BUY
 from py_clob_client.constants import POLYGON
 from py_clob_client.clob_types import ApiCreds, MarketOrderArgs
-from dotenv import load_dotenv
+import dotenv
 from py_clob_client.constants import AMOY
+import os
 
-load_dotenv()
+dotenv.load_dotenv()
 
 def calculate_arbitrage(kalshi_buy, kalshi_sell, polymarket_buy, polymarket_sell, stake):
     """
@@ -85,6 +87,7 @@ def calculate_arbitrage(kalshi_buy, kalshi_sell, polymarket_buy, polymarket_sell
         },
     }
 
+
 def get_current_prices(kalshi_auth_token, polymarket_client, kalshi_ticker, polymarket_id):
 
   #KALSHI UPDATED MARKET PRICES
@@ -93,12 +96,12 @@ def get_current_prices(kalshi_auth_token, polymarket_client, kalshi_ticker, poly
   headers = {
       "accept": "application/json",
       "Authorization": f"Bearer {kalshi_auth_token}",
+      "User-Agent": "curl/8.4.0"
   }
-  print(headers)
 
 
   kalshi_url = kalshi_generic_url+kalshi_ticker
-  response = requests.get(url = kalshi_url, headers=headers)
+  response = requests.get(url = kalshi_url, headers=headers, proxies={'http': None, 'https': None}, verify=True)
 
   kalshi_yes_ask = float(response.json()['market']['yes_ask'])/100
   kalshi_no_ask = float(response.json()['market']['no_ask'])/100
@@ -134,21 +137,6 @@ def get_current_prices(kalshi_auth_token, polymarket_client, kalshi_ticker, poly
 
   return kalshi_yes_ask, kalshi_no_ask, polymarket_yes_ask, polymarket_no_ask, polymarket_yes_token, polymarket_no_token
 
-
-#get kalshi auth token
-url = "https://trading-api.kalshi.com/trade-api/v2/login"
-
-payload = {
-    "email": os.getenv("KALSHI_EMAIL"),
-    "password": os.getenv("KALSHI_PASSWORD")
-}
-headers = {
-    "accept": "application/json",
-    "content-type": "application/json"
-}
-
-response = requests.post(url, json=payload, headers=headers).json()
-kalshi_auth_token = response["token"]
 
 
 

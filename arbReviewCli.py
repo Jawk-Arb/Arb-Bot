@@ -7,6 +7,7 @@ import json
 from typing import Dict, Any
 from getArbPreview import get_current_prices, calculate_arbitrage
 from placeOrder import kalshi_auth, get_polymarket_client, execute_order
+from db import supabase, NOT_FOUND, get_market_verification, insert_market_verification
 
 
 global result
@@ -62,11 +63,24 @@ def review_market_and_arb(row):
     
     options = ["Markets Match (Show Arb)", "Markets Different", "Skip", "Quit"]
     terminal_menu = TerminalMenu(options, title="Are these markets equivalent?")
-    choice = terminal_menu.show()
+    # Get the verification status of the market
+    market_verification_result = get_market_verification(row['kalshi_id'], row['poly_id'])
+    choice = 1
+    if market_verification_result == True:
+        choice = 0
+    elif market_verification_result == False:
+        return 1
+    # Market not found case
+    else:
+        choice = terminal_menu.show()
     
     if choice == 0:  # Markets Match
+        if market_verification_result == NOT_FOUND:
+            insert_market_verification(row['kalshi_id'], row['poly_id'], row['kalshi_title'], row['poly_question'], True)
         console.clear()
-        kalshi_yes_ask, kalshi_no_ask, polymarket_yes_ask, polymarket_no_ask, polymarket_yes_token, polymarket_no_token = get_current_prices(kalshi_auth_token, polymarket_client, row['kalshi_id'], row['poly_id'])
+        kalshi_yes_ask, kalshi_no_ask, polymarket_yes_ask, polymarket_no_ask, polymarket_yes_token, polymarket_no_token = get_current_prices(
+            kalshi_auth_token, polymarket_client, row['kalshi_id'], row['poly_id']
+        )
         prices = {
             'kalshi_yes_ask': kalshi_yes_ask,
             'kalshi_no_ask': kalshi_no_ask,
@@ -75,9 +89,13 @@ def review_market_and_arb(row):
             'polymarket_yes_token': polymarket_yes_token,
             'polymarket_no_token': polymarket_no_token
         }
-        if kalshi_yes_ask >0 and kalshi_no_ask >0 and polymarket_yes_ask >0 and polymarket_no_ask >0:
+        if (kalshi_yes_ask > 0 and kalshi_no_ask > 0 and 
+            polymarket_yes_ask > 0 and polymarket_no_ask > 0):
             # Last Parameter is the stake size (in dollars)
-            arb_opportunity = calculate_arbitrage(kalshi_yes_ask, kalshi_no_ask, polymarket_yes_ask, polymarket_no_ask, 10)
+            arb_opportunity = calculate_arbitrage(
+                kalshi_yes_ask, kalshi_no_ask, 
+                polymarket_yes_ask, polymarket_no_ask, 10
+            )
             if arb_opportunity == 'No Arbitrage':
                 return "pass"
             display_opportunity(arb_opportunity, row, prices)
@@ -90,10 +108,13 @@ def review_market_and_arb(row):
         terminal_menu = TerminalMenu(options, title="Select Action:")
         action = terminal_menu.show()
         return "execute" if action == 0 else "pass"
+    else:
+        if market_verification_result == NOT_FOUND:
+            insert_market_verification(row['kalshi_id'], row['poly_id'], row['kalshi_title'], row['poly_question'], False)
     
     return {
         1: "different",
-        2: "skip",
+        2: "skip", 
         3: "quit"
     }.get(choice)
 
@@ -103,6 +124,8 @@ def review_arb_opportunities():
     verified_markets = []
     
     for index, row in df.iterrows():
+
+            
         result = review_market_and_arb(row)
         
         if result == "quit":
