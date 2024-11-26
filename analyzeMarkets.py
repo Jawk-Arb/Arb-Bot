@@ -45,7 +45,7 @@ class MarketMatcher:
                     if similarity_score > 0.7:
                       similar_pairs.append({
                             'poly_question': poly_df.iloc[i]['question'],
-                            'kalshi_title': kalshi_df.iloc[j]['title'],
+                            'kalshi_title': kalshi_df.iloc[j]['full_title'],
                             'kalshi_id': kalshi_df.iloc[j]['ticker'],
                             'poly_id': poly_df.iloc[i]['id'],
                             'similarity_score': float(similarity_score),
