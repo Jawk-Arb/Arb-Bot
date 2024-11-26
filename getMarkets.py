@@ -162,7 +162,14 @@ class KalshiAPI:
             except Exception as e:
                 logging.error(f"Error fetching markets: {e}")
                 break
-        print(markets.head())
+        markets['full_title'] = markets.apply(
+            lambda row: (
+                f"{row['title']} {row['yes_sub_title']}"  # Use 'yes_sub_title' if 'subtitle' is empty, "::", or null
+                if (row['subtitle'] == '::' or row['subtitle'] == '' or pd.isnull(row['subtitle'])) else
+                row['title'] if row['subtitle'].lower() in row['title'].lower() else
+                f"{row['title']} {row['subtitle']}"  # Otherwise, use 'title' and 'subtitle'
+            ), axis=1
+        )
         return markets
     
     def save_to_csv(self, df, filename="kalshi_markets.csv"):
