@@ -29,7 +29,7 @@ class MarketMatcher:
     def find_similar_markets(self, poly_df, kalshi_df):
         # Encode all questions/titles
         poly_embeddings = self.model(poly_df['question'].tolist())
-        kalshi_embeddings = self.model(kalshi_df['title'].tolist())
+        kalshi_embeddings = self.model(kalshi_df['full_title'].tolist())
 
         # Calculate similarity matrix
         similarity_matrix = self.cosine_similarity(poly_embeddings, kalshi_embeddings)
