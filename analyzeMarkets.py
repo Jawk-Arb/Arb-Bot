@@ -84,7 +84,7 @@ def count_words(strings):
 
 def optimize_market_search(key_word_df, kalshi_markets, polymarket_markets):
     # Preprocess Kalshi market titles into sets of words for faster lookups
-    kalshi_markets['market_words'] = kalshi_markets['title'].str.lower().apply(lambda x: set(re.findall(r'\b\w+\b', x)))
+    kalshi_markets['market_words'] = kalshi_markets['full_title'].str.lower().apply(lambda x: set(re.findall(r'\b\w+\b', x)))
 
     # Preprocess Polymarket market titles into sets of words for faster lookups
     polymarket_markets['market_words'] = polymarket_markets['slug'].str.lower().apply(lambda x: set(re.findall(r'\b\w+\b', x)))
@@ -111,7 +111,7 @@ def get_key_words(polymarket_markets, kalshi_markets):
     polymarket_market_titles = polymarket_markets['slug'].tolist()
 
     kalshi_markets = kalshi_markets
-    kalshi_market_titles = kalshi_markets['title'].tolist()
+    kalshi_market_titles = kalshi_markets['full_title'].tolist()
 
 
     polymarket_word_count = count_words(polymarket_market_titles).rename(columns = {"Word":"Word", "Occurrences":"Polymarket Occurrences"})
