@@ -146,15 +146,23 @@ def prepare_orders(row):
     arb_opportunity = row['arb_opportunity']
     prices = row['prices']
 
+    #rounding offset
+    original_kalshi_contacts = (arb_opportunity['optimal_allocation']['yes_stake'] / prices['kalshi_yes_ask']) if arb_opportunity['market_allocation']['yes_market'] == 'kalshi' else (arb_opportunity['optimal_allocation']['no_stake'] / prices['kalshi_no_ask'])
+    original_polymarket_amount = arb_opportunity['optimal_allocation']['yes_stake'] if arb_opportunity['market_allocation']['yes_market'] == 'polymarket' else arb_opportunity['optimal_allocation']['no_stake']
+
+    kalshi_adjusted_contracts = round(original_kalshi_contacts)
+    round_rate = kalshi_adjusted_contracts/original_kalshi_contacts
+    poly_adjusted = original_polymarket_amount * round_rate
+
     kalshi_params = {
         'auth_token': kalshi_auth_token,
         'ticker': row['kalshi_id'],
-        'count': (arb_opportunity['optimal_allocation']['yes_stake'] / prices['kalshi_yes_ask']) if arb_opportunity['market_allocation']['yes_market'] == 'kalshi' else (arb_opportunity['optimal_allocation']['no_stake'] / prices['kalshi_no_ask']),
+        'count': kalshi_adjusted_contracts,
         'side': 'yes' if arb_opportunity['market_allocation']['yes_market'] == 'kalshi' else 'no'
     }
     polymarket_params = {
         'token_id': prices['polymarket_yes_token'] if arb_opportunity['market_allocation']['yes_market'] == 'polymarket' else prices['polymarket_no_token'],
-        'amount': arb_opportunity['optimal_allocation']['yes_stake'] if arb_opportunity['market_allocation']['yes_market'] == 'polymarket' else arb_opportunity['optimal_allocation']['no_stake'],
+        'amount': poly_adjusted,
         'client': polymarket_client
     }
     return kalshi_params, polymarket_params
