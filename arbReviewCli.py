@@ -25,7 +25,7 @@ def format_arb_preview(arb_preview) -> Dict[str, Any]:
     """Parse and format the Arb Preview"""
     try:
         return {
-            'optimal_allocation': f"Yes: ${arb_preview['optimal_allocation']['yes_stake']:.2f}, No: ${arb_preview['optimal_allocation']['no_stake']:.2f}",
+            'optimal_allocation': f"Kalshi: ${arb_preview['optimal_allocation']['kalshi_allocation']:.2f}, Polymarket: ${arb_preview['optimal_allocation']['polymarket_allocation']:.2f}",
             'market_allocation': f"Yes: {arb_preview['market_allocation']['yes_market']}, No: {arb_preview['market_allocation']['no_market']}",
             'min_roi': f"{arb_preview['outcomes']['min_roi']:.2f}%"
         }
@@ -146,23 +146,18 @@ def prepare_orders(row):
     arb_opportunity = row['arb_opportunity']
     prices = row['prices']
 
-    #rounding offset
-    original_kalshi_contacts = (arb_opportunity['optimal_allocation']['yes_stake'] / prices['kalshi_yes_ask']) if arb_opportunity['market_allocation']['yes_market'] == 'kalshi' else (arb_opportunity['optimal_allocation']['no_stake'] / prices['kalshi_no_ask'])
-    original_polymarket_amount = arb_opportunity['optimal_allocation']['yes_stake'] if arb_opportunity['market_allocation']['yes_market'] == 'polymarket' else arb_opportunity['optimal_allocation']['no_stake']
-
-    kalshi_adjusted_contracts = round(original_kalshi_contacts)
-    round_rate = kalshi_adjusted_contracts/original_kalshi_contacts
-    poly_adjusted = original_polymarket_amount * round_rate
+    kalshi__contracts = arb_opportunity['optimal_allocation']['kalshi_contracts']
+    poly_allocation = arb_opportunity['optimal_allocation']['polymarket_allocation']
 
     kalshi_params = {
         'auth_token': kalshi_auth_token,
         'ticker': row['kalshi_id'],
-        'count': kalshi_adjusted_contracts,
+        'count': kalshi__contracts,
         'side': 'yes' if arb_opportunity['market_allocation']['yes_market'] == 'kalshi' else 'no'
     }
     polymarket_params = {
         'token_id': prices['polymarket_yes_token'] if arb_opportunity['market_allocation']['yes_market'] == 'polymarket' else prices['polymarket_no_token'],
-        'amount': poly_adjusted,
+        'amount': poly_allocation,
         'client': polymarket_client
     }
     return kalshi_params, polymarket_params
