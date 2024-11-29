@@ -18,7 +18,7 @@ dotenv.load_dotenv()
 
 def calculate_arbitrage(kalshi_buy, kalshi_sell, polymarket_buy, polymarket_sell, stake):
     """
-    Calculate arbitrage opportunities between two markets
+    Calculate arbitrage opportunities between two markets, consider fees and kalshi contract rounding
 
     Args:
         kalshi_buy (float): Market 1 YES probability
@@ -61,17 +61,39 @@ def calculate_arbitrage(kalshi_buy, kalshi_sell, polymarket_buy, polymarket_sell
     no_stake = no_stake * (stake / total_investment)
     total_investment = yes_stake + no_stake
 
-    # Calculate potential outcomes
-    outcome_if_yes = (yes_stake * (1 / worst_yes)) - total_investment
-    outcome_if_no = (no_stake * (1 / worst_no)) - total_investment
+
+    #fix for kalshi rounding
+    original_kalshi_amount = yes_stake if yes_market == 'kalshi' else no_stake
+    original_kalshi_contacts = (yes_stake/ kalshi_buy) if yes_market == 'kalshi' else (no_stake / kalshi_sell)
+    original_polymarket_amount = yes_stake if yes_market == 'polymarket' else no_stake
+
+    kalshi_rounded_contracts = round(original_kalshi_contacts)
+    round_rate = kalshi_rounded_contracts/original_kalshi_contacts
+    poly_adjusted = original_polymarket_amount * round_rate
+    kalshi_adjusted = yes_stake*round_rate if yes_market == 'kalshi' else no_stake*round_rate
+
+    #net kalshi return by estimated fees
+    kalshi_price = kalshi_buy if yes_market == 'kalshi' else kalshi_sell
+    poly_price = polymarket_buy if yes_market == 'polymarket' else polymarket_sell
+    fees = round(0.07 * kalshi_rounded_contracts * kalshi_price * (1-kalshi_price),2)
+    total_investment = kalshi_adjusted + poly_adjusted + fees
+
+
+    # Calculate final outcomes
+    outcome_if_yes = kalshi_rounded_contracts - total_investment if yes_market == 'kalshi' else (poly_adjusted / poly_price) - total_investment
+    outcome_if_no = (poly_adjusted / poly_price) - total_investment if yes_market == 'kalshi' else kalshi_rounded_contracts - total_investment
 
     min_profit = min(outcome_if_yes, outcome_if_no)
     max_profit = max(outcome_if_yes, outcome_if_no)
 
+    if min_profit < 0:
+      return 'No Arbitrage'  # No arbitrage opportunity
+
     return {
         "optimal_allocation": {
-            "yes_stake": yes_stake,
-            "no_stake": no_stake,
+            "kalshi_allocation": kalshi_adjusted,
+            "polymarket_allocation": poly_adjusted,
+            "kalshi_contracts": kalshi_rounded_contracts,
             "total_investment": total_investment,
         },
         "market_allocation": {
@@ -86,7 +108,6 @@ def calculate_arbitrage(kalshi_buy, kalshi_sell, polymarket_buy, polymarket_sell
             "min_roi": (min_profit / total_investment) * 100 if total_investment > 0 else 0,
         },
     }
-
 
 def get_current_prices(kalshi_auth_token, polymarket_client, kalshi_ticker, polymarket_id):
 
