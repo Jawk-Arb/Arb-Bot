@@ -1,6 +1,7 @@
 polybot/
 polymarket_data.csv
 .env
+packages/py-clob-client/
 logs/
 *.csv
 __pycache__/
